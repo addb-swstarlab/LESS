@@ -1771,11 +1771,21 @@ void aof_with_rdb_DoneHandler(int exitcode, int bysignal) { // Create RDB File C
         server.aof_state = AOF_ON;
 }
 
+/*LESS method operation process
+ * step 1 - create Temp AOF & change file descriptor
+ * step 2 - fork child process
+ *   step 2-1 child process - generate Temp RDB & write key-value pair log records for current dataset
+ *   step 2-2 parent process - execute client request & append log records in AOF
+ * step 3 - When the child process is finished, the child process is terminated
+ * step 4 - Rename Temp AOF to AOF & Remove old AOF
+ * step 5 - Rename Temp RDB to RDB
+ * */
 
 void aof_with_rdb() {
     FILE *fp;
     int ret;
-
+    /*step 1*/
+    /* Create Temp AOF */
     if((fp = fopen(REDIS_DEFAULT_TEMP_AOF_FILENAME,"w")) == NULL) {
     	serverLog(LL_WARNING, "Error open to the temporary AOF file : %s", strerror(errno));
         return;
@@ -1786,9 +1796,12 @@ void aof_with_rdb() {
         exit(1);
     }
 
-    server.aof_fd = fileno(fp); // Change Temp AOF to Current AOF
+    /* Change Temp AOF to Current AOF */
+    server.aof_fd = fileno(fp);
 
-    if(rdbSaveBackground(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK)  // Create Temp RDB File(Background Process)
+    /*step 2*/
+    /* fork child process - Create Temp RDB File(Background Process) */
+    if(rdbSaveBackground(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK)
     	serverLog(LL_WARNING, "Background saving started(AOF With RDB Mode)");
 
 }

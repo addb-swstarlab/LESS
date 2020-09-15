@@ -1120,6 +1120,11 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
             if (growth >= server.aof_rewrite_perc) {
             	/* TODO : aof_with_rdb function call */
             	if(server.aof_with_rdb_state == REDIS_AOF_WITH_RDB_ON){
+
+            		/* Same as AOF Rewrite trigger condition
+            		 * initial trigger - When the AOF file size is bigger than 64MB
+            		 * From the second trigger - When the size of the AOF file is twice the size at the end of the previous trigger*/
+
             		serverLog(LL_NOTICE, "aof_with_rdb mode on");
                     aof_with_rdb();
             	}
