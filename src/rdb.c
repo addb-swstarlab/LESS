@@ -1151,6 +1151,7 @@ int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
             }
 
             server.child_info_data.cow_size = private_dirty;
+            /* step 3 - Send terminate signal to parent process*/
             sendChildInfo(CHILD_INFO_TYPE_RDB);
         }
         exitFromChild((retval == C_OK) ? 0 : 1);
@@ -1900,7 +1901,8 @@ void backgroundSaveDoneHandler(int exitcode, int bysignal) {
     case RDB_CHILD_TYPE_SOCKET:
         backgroundSaveDoneHandlerSocket(exitcode,bysignal);
         break;
-        //hshs1103
+ /* step 4 - Rename Temp AOF to AOF & Remove old AOF
+  * step 5 - Rename Temp RDB to RDB*/
     case RDB_CHILD_TYPE_AOF_WITH_RDB:
     	aof_with_rdb_DoneHandler(exitcode, bysignal);
     	break;

@@ -1717,7 +1717,7 @@ int append_selected_db_command(int fd){ // Append Select DB Command
 
 
 
-void aof_with_rdb_DoneHandler(int exitcode, int bysignal) { // Create RDB File Complete
+void aof_with_rdb_DoneHandler(int exitcode, int bysignal) {
 
     if (!bysignal && exitcode == 0) {
     	serverLog(LL_NOTICE,
@@ -1751,11 +1751,13 @@ void aof_with_rdb_DoneHandler(int exitcode, int bysignal) { // Create RDB File C
      * (the first stage of SYNC is a bulk transfer of dump.rdb) */
     updateSlavesWaitingBgsave((!bysignal && exitcode == 0) ? C_OK : C_ERR, RDB_CHILD_TYPE_DISK);
 
+    /* step 4 - Rename Temp AOF to AOF & Remove old AOF */
     if (rename(REDIS_DEFAULT_TEMP_AOF_FILENAME,server.aof_filename) == -1) { // rename temp aof
     	serverLog(LL_WARNING,
             "Error trying to rename the temporary AOF file: %s", strerror(errno));
         exit(1);
     }
+    /* step 5 - Rename Temp RDB to RDB*/
     if (rename(REDIS_DEFAULT_TEMP_RDB_FILENAME,server.rdb_filename) == -1) { // rename temp rdb
     	serverLog(LL_WARNING,
             "Error trying to rename the temporary RDB file: %s", strerror(errno));
