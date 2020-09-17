@@ -1072,7 +1072,7 @@ int rdbSaveWithoutRename() {
     FILE *fp;
     rio rdb;
     int error;
-
+    /*create Temp RDB file*/
     sprintf(tmpfile, "temp.rdb");
     fp = fopen(tmpfile,"w");
     if (!fp) {
@@ -1082,6 +1082,7 @@ int rdbSaveWithoutRename() {
     }
 
     rioInitWithFile(&rdb,fp);
+    /*write key-value pair log records to the Temp RDB file*/
     if (rdbSaveRio(&rdb,&error,RDB_SAVE_AOF_WITH_RDB,NULL) == C_ERR) {
         errno = error;
         goto werr;
@@ -1107,6 +1108,11 @@ werr:
 }
 
 
+/*
+ * step 2 - fork child process
+ *   step 2-1 child process - generate Temp RDB & write key-value pair log records for current dataset
+ *   step 2-2 parent process - execute client request & append log records in AOF
+  */
 
 int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
     pid_t childpid;
@@ -1119,6 +1125,7 @@ int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
     openChildInfoPipe();
 
     start = ustime();
+    /*Fork Child process*/
     if ((childpid = fork()) == 0) {
         int retval;
 
@@ -1126,8 +1133,9 @@ int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
         closeListeningSockets(0);
         redisSetProcTitle("redis-rdb-bgsave");
 
-        //hshs1103-withrdb
+
         if(server.aof_with_rdb_state == REDIS_AOF_WITH_RDB_ON){
+        	/* Generate Temp RDB & create snapshot file for the current dataset*/
         	retval = rdbSaveWithoutRename();
         }
         else {
@@ -1148,6 +1156,7 @@ int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
         exitFromChild((retval == C_OK) ? 0 : 1);
     } else {
         /* Parent */
+    	  /*save child process info*/
         server.stat_fork_time = ustime()-start;
         server.stat_fork_rate = (double) zmalloc_used_memory() * 1000000 / server.stat_fork_time / (1024*1024*1024); /* GB per second. */
         latencyAddSampleIfNeeded("fork",server.stat_fork_time/1000);
