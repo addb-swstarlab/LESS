@@ -3703,6 +3703,37 @@ else if (aof && !temp_aof && rdb && temp_rdb) {
     }
 }
 
+/*LESS Data Recovery - initial triggered case*/
+
+else if (aof && temp_aof && !rdb && !temp_rdb) {
+    start = ustime();
+    if (loadAppendOnlyFile(server.aof_filename) == C_OK) {
+    	serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+    }
+    start = ustime();
+    if (loadAppendOnlyFile(REDIS_DEFAULT_TEMP_AOF_FILENAME) == C_OK) {
+    	serverLog(LL_NOTICE,"DB loaded from temp append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+    }
+}
+
+else if (aof && !temp_aof && !rdb && !temp_rdb) {
+    start = ustime();
+    if (loadAppendOnlyFile(server.aof_filename) == C_OK) {
+    	serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+    }
+}
+
+else if (aof && temp_aof && !rdb && temp_rdb) {
+    start = ustime();
+    if (loadAppendOnlyFile(server.aof_filename) == C_OK) {
+    	serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+    }
+    start = ustime();
+    if (loadAppendOnlyFile(REDIS_DEFAULT_TEMP_AOF_FILENAME) == C_OK) {
+    	serverLog(LL_NOTICE,"DB loaded from temp append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+    }
+}
+
 else {
     start = ustime();
     if (rdbLoad(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK) {
