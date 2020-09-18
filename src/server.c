@@ -3575,13 +3575,14 @@ int checkForSentinelMode(int argc, char **argv) {
 
 /* Function called at startup to load RDB or AOF file in memory. */
 void loadDataFromDisk(void) {
-	//hshs1103
+	/* LESS data recovery */
+	/* If the aofmode flag in the redis.conf file is set to "with_rdb", LESS data recovery is performed.*/
 	if(server.aof_with_rdb_state == REDIS_AOF_WITH_RDB_ON) {
         serverLog(LL_NOTICE, "aof_with_rdb on");
         loadData_aof_with_rdb();
         return;
 
-	}//fix later
+	}
     else if (server.aof_with_rdb_state == REDIS_AOF_WITH_RDB_OFF && server.aof_state == AOF_ON)
         serverLog(LL_NOTICE, "aof_only on!");
     else
@@ -3621,9 +3622,11 @@ void loadDataFromDisk(void) {
     }
 }
 
-//HSHS1103 RECOVERY AOF_WITH_RDB
-//modify_test
-/* TODO : check file list, recovery start */
+/* LESS Data Recovery Function
+ * Step 1. Check the types of log files on disk --> Identify when the system crash occurred
+ * Step 2. Perform data recovery according to the types of files present on the disk
+ * */
+
 void loadData_aof_with_rdb(void) {
 	serverLog(LL_NOTICE, "AOF with RDB Start");
 long long start = ustime();
@@ -3634,6 +3637,10 @@ if (access(REDIS_DEFAULT_TEMP_RDB_FILENAME, F_OK) == 0) temp_rdb = true;
 if (access(server.aof_filename, F_OK) == 0) aof = true;
 if (access(server.rdb_filename, F_OK) == 0) rdb = true;
 
+/* LESS Data Recovery case*/
+/* case 1 - crash occurred before starting RDB creation
+ * list of files - AOF, Temp AOF, RDB
+ * Recovery order - RDB, AOF, Temp AOF */
 if (aof && temp_aof && rdb && !temp_rdb) {
     start = ustime();
     if (rdbLoad(server.rdb_filename, NULL) == C_OK) {
@@ -3649,6 +3656,9 @@ if (aof && temp_aof && rdb && !temp_rdb) {
     	serverLog(LL_NOTICE,"DB loaded from temp append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     }
 }
+/* case 2 - crash occurred before LESS operates or After Temp RDB rename
+ * list of files - AOF, RDB
+ * Recovery order - RDB, AOF */
 else if (aof && !temp_aof && rdb && !temp_rdb){
 
     start = ustime();
@@ -3660,6 +3670,9 @@ else if (aof && !temp_aof && rdb && !temp_rdb){
     if (loadAppendOnlyFile(server.aof_filename) == C_OK)
         serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
 }
+/* case 3 - crash occurred during RDB creation
+ * list of files - AOF, Temp AOF, RDB, Temp RDB
+ * Recovery order - RDB, AOF, Temp AOF */
 else if (aof && temp_aof && rdb && temp_rdb) {
     start = ustime();
     if (rdbLoad(server.rdb_filename, NULL) == C_OK) {
@@ -3675,6 +3688,9 @@ else if (aof && temp_aof && rdb && temp_rdb) {
     	serverLog(LL_NOTICE,"DB loaded from temp append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     }
 }
+/* case 4 - crash occurred after Temp AOF rename
+ * list of files - AOF, RDB, Temp RDB
+ * Recovery order - Temp RDB, AOF*/
 else if (aof && !temp_aof && rdb && temp_rdb) {
     start = ustime();
     if (rdbLoad(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK) {
@@ -3686,6 +3702,7 @@ else if (aof && !temp_aof && rdb && temp_rdb) {
     	serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     }
 }
+
 else {
     start = ustime();
     if (rdbLoad(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK) {
