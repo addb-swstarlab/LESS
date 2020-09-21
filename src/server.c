@@ -3742,7 +3742,7 @@ else if (aof && temp_aof && !rdb && temp_rdb) {
 /* case 4 - crash occurred after Temp AOF rename
  * list of files - AOF, Temp RDB
  * Recovery order - Temp RDB, AOF */
-else {
+else if(aof && !temp_aof && !rdb && temp_rdb) {
     start = ustime();
     if (rdbLoad(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK) {
     	serverLog(LL_NOTICE,"DB loaded from disk: %.3f seconds",
@@ -3751,6 +3751,12 @@ else {
     start = ustime();
     if (loadAppendOnlyFile(server.aof_filename) == C_OK)
     	serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+}
+/* exception case
+ * Situations where data recovery cannot be performed */
+else {
+	serverLog(LL_WARNING,"Fatal error during data recovery: %s. Exiting.",strerror(errno));
+	            exit(1);
 }
 }
 
