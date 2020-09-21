@@ -3755,7 +3755,6 @@ else if(aof && !temp_aof && !rdb && temp_rdb) {
 /* exception case
  * Situations where data recovery cannot be performed */
 else {
-	serverLog(LL_WARNING, "CHECK!!!!!!!!!!!!!");
 	serverLog(LL_WARNING,"Fatal error during data recovery: %s. Exiting.",strerror(errno));
 	            exit(1);
 }
