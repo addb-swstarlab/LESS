@@ -1763,7 +1763,7 @@ void aof_with_rdb_DoneHandler(int exitcode, int bysignal) {
             "Error trying to rename the temporary RDB file: %s", strerror(errno));
         exit(1);
     }
-
+    serverLog(LL_NOTICE, "AOF_WITH_RDB terminated success");
     server.aof_selected_db = -1;
     aofUpdateCurrentSize();
     server.aof_rewrite_base_size = server.aof_current_size * 2; // Change Current AOF File Size
@@ -1804,7 +1804,7 @@ void aof_with_rdb() {
     /*step 2*/
     /* fork child process - Create Temp RDB File(Background Process) */
     if(rdbSaveBackground(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK)
-    	serverLog(LL_WARNING, "Background saving started(AOF With RDB Mode)");
+    	serverLog(LL_NOTICE, "Background saving started(AOF With RDB Mode)");
 
 }
 
