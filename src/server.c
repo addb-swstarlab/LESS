@@ -3704,7 +3704,9 @@ else if (aof && !temp_aof && rdb && temp_rdb) {
 }
 
 /*LESS Data Recovery - initial triggered case*/
-
+/* case 1 - crash occurred before starting RDB creation
+ * list of files - AOF, Temp AOF
+ * Recovery order - AOF, Temp AOF */
 else if (aof && temp_aof && !rdb && !temp_rdb) {
     start = ustime();
     if (loadAppendOnlyFile(server.aof_filename) == C_OK) {
@@ -3715,14 +3717,18 @@ else if (aof && temp_aof && !rdb && !temp_rdb) {
     	serverLog(LL_NOTICE,"DB loaded from temp append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     }
 }
-
+/* case 2 - crash occurred before LESS is triggered
+ * list of files - AOF
+ * Recovery order - AOF*/
 else if (aof && !temp_aof && !rdb && !temp_rdb) {
     start = ustime();
     if (loadAppendOnlyFile(server.aof_filename) == C_OK) {
     	serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     }
 }
-
+/* case 3 - crash occurred during RDB creation
+ * list of files - AOF, Temp AOF, Temp RDB
+ * Recovery order - AOF, Temp AOF */
 else if (aof && temp_aof && !rdb && temp_rdb) {
     start = ustime();
     if (loadAppendOnlyFile(server.aof_filename) == C_OK) {
@@ -3733,7 +3739,9 @@ else if (aof && temp_aof && !rdb && temp_rdb) {
     	serverLog(LL_NOTICE,"DB loaded from temp append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     }
 }
-
+/* case 4 - crash occurred after Temp AOF rename
+ * list of files - AOF, Temp RDB
+ * Recovery order - Temp RDB, AOF */
 else {
     start = ustime();
     if (rdbLoad(REDIS_DEFAULT_TEMP_RDB_FILENAME, NULL) == C_OK) {
